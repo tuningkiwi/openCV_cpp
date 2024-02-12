@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "helloCV", "helloCV\helloCV.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "helloCV2", "helloCV2\helloCV2.vcxproj", "{D332B59E-F68A-4B78-96FE-57F41732377E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "helloCV3", "helloCV3\helloCV3.vcxproj", "{873F0D90-F5A9-4D0A-8889-7216BDF77957}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{D332B59E-F68A-4B78-96FE-57F41732377E}.Release|x64.Build.0 = Release|x64
 		{D332B59E-F68A-4B78-96FE-57F41732377E}.Release|x86.ActiveCfg = Release|Win32
 		{D332B59E-F68A-4B78-96FE-57F41732377E}.Release|x86.Build.0 = Release|Win32
+		{873F0D90-F5A9-4D0A-8889-7216BDF77957}.Debug|x64.ActiveCfg = Debug|x64
+		{873F0D90-F5A9-4D0A-8889-7216BDF77957}.Debug|x64.Build.0 = Debug|x64
+		{873F0D90-F5A9-4D0A-8889-7216BDF77957}.Debug|x86.ActiveCfg = Debug|Win32
+		{873F0D90-F5A9-4D0A-8889-7216BDF77957}.Debug|x86.Build.0 = Debug|Win32
+		{873F0D90-F5A9-4D0A-8889-7216BDF77957}.Release|x64.ActiveCfg = Release|x64
+		{873F0D90-F5A9-4D0A-8889-7216BDF77957}.Release|x64.Build.0 = Release|x64
+		{873F0D90-F5A9-4D0A-8889-7216BDF77957}.Release|x86.ActiveCfg = Release|Win32
+		{873F0D90-F5A9-4D0A-8889-7216BDF77957}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

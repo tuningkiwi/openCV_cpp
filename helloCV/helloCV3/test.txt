@@ -1,0 +1,7 @@
+codeID	Page	explain
+104	348	smoothing a histogram of a color image
+105	350	Segmentation of a specific color area using an in-range 
+1052	350	105-version2
+106	354	histogram backprojection
+71	250	embossing fileter 
+0	0	Program EXIT

@@ -3,5 +3,8 @@ codeID	Page	explain
 105	350	Segmentation of a specific color area using an in-range 
 1052	350	105-version2
 106	354	histogram backprojection
-71	250	embossing fileter 
+71	250	embossing fileter
+72	253	blurring_mean
+73	259	blurring_gaussian
+74	263	sharpen (unsharp mask filtering) 
 0	0	Program EXIT

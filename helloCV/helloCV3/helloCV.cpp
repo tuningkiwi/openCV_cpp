@@ -11,18 +11,20 @@
 using namespace std;
 using namespace cv;
 
-int fun104(void);
-int fun105(void);
+int color_equalization(void);
+int color_inrange(void);
 void on_hue_changed(int, void*);
 int printCodeList(void);
-int fun105_v2(void);
+int color_inrange_v2(void);
 void nothing(int, void*);
-int fun106(void);
-int fun071(void);
-int fun510(void);
+int color_backprojection(void);
+int filter_embossing(void);
+int histogram_equalization(void);
 Mat getGrayHistImage(const Mat& hist);
 Mat calcGrayHist(const Mat& img);
-int fun072(void); 
+int blurring_mean(void); 
+int blurring_gaussian(void); 
+int sharpen(void); 
 
 int main()
 {
@@ -38,13 +40,16 @@ int main()
         cin >> codeNum;
 
         switch (codeNum) {
-            case 104: fun104(); break;
-            case 105: fun105(); break;
-            case 1052: fun105_v2(); break;
-            case 106: fun106(); break;
-            case 71: fun071(); break;
-            case 72: fun072(); break; 
-            case 510: fun510(); break; 
+            case 104: color_equalization(); break;
+            case 105: color_inrange(); break;
+            case 1052: color_inrange_v2(); break;
+            case 106: color_backprojection(); break;
+            case 71: filter_embossing(); break;
+            case 72: blurring_mean(); break;
+            case 73: blurring_gaussian(); break;
+            case 74: sharpen(); break; 
+            case 510: histogram_equalization(); break;
+            
             case 0: cout << "Program is closed ..." << endl; return 0;
             default: cout << "Wrong Code ID, Retry!!!!!!!!" << endl; break;
         }
@@ -53,7 +58,56 @@ int main()
     
 }
 
-int fun072(void) {
+int sharpen(void) {
+    Mat src = imread("images/rose.bmp", IMREAD_GRAYSCALE);
+
+    if (src.empty()) {
+        cerr << "image load failed" << endl;
+        return -1;
+    }
+
+    imshow("src", src);
+
+    for (int sigma = 1; sigma <= 5; sigma++) {
+        Mat blurred; 
+        GaussianBlur(src, blurred, Size(), (double)sigma);
+
+        float alpha = 1.f; 
+        Mat dst = (1 + alpha) * src - alpha * blurred;
+
+        String dstTitle = format("sigma=%d", sigma);
+        imshow(dstTitle, dst);
+    }
+
+    waitKey();
+    destroyAllWindows();
+}
+
+int blurring_gaussian(void) {
+    Mat src = imread("images/rose.bmp", IMREAD_GRAYSCALE); 
+
+    if (src.empty()) {
+        cerr << "image load failed" << endl;
+        return -1;
+    }
+
+    imshow("src", src);
+
+    Mat dst; 
+    for (int sigma = 1; sigma <= 5; sigma++) {
+        GaussianBlur(src, dst, Size(), (double)sigma); 
+
+        cout << "Gaussian Kernel\n" << getGaussianKernel(9, sigma) << endl; 
+        String dstTitle = format("sigma=%d", sigma);
+        imshow(dstTitle, dst);
+    }
+
+    waitKey();
+    destroyAllWindows(); 
+
+}
+
+int blurring_mean(void) {
     Mat src = imread("images/rose.bmp", IMREAD_GRAYSCALE);
 
     if (src.empty()) {
@@ -74,7 +128,7 @@ int fun072(void) {
     destroyAllWindows(); 
 }
 
-int fun510(void) {
+int histogram_equalization(void) {
     Mat src = imread("images/hawkes.bmp", IMREAD_GRAYSCALE); 
 
     if (src.empty()) {
@@ -125,7 +179,7 @@ Mat calcGrayHist(const Mat& img) {
     return hist;
 }
 
-int fun071(void) {
+int filter_embossing(void) {
     Mat src = imread("images/rose.bmp",IMREAD_GRAYSCALE);
      
     if (src.empty()) {
@@ -149,7 +203,7 @@ int fun071(void) {
     return 0; 
 }
 
-int fun106(void) {
+int color_backprojection(void) {
 
     Mat ref, ref_ycrcb, mask;
     ref = imread("images/ref.png", IMREAD_COLOR);
@@ -243,7 +297,7 @@ int fun106(void) {
 
 Mat src, src_hsv, mask, bg;
 int lower_hue = 40, upper_hue = 80;
-int fun105(void) {
+int color_inrange(void) {
     //in Range()함수를 이용한 특정 색상 분할 
     // Hue: 색상 Saturation:채도 Value: 명도 
     
@@ -297,7 +351,7 @@ void nothing(int, void*) {
     return;
 }
 
-int fun105_v2(void) {
+int color_inrange_v2(void) {
     Mat src = imread("images/color_w.png", IMREAD_COLOR);
     
     Mat bg = src.clone(); //Mat bg(src.size(), src.type());
@@ -344,7 +398,7 @@ int fun105_v2(void) {
 
 }
 
-int fun104(void) {
+int color_equalization(void) {
     Mat src = imread("images/lena.jpg", IMREAD_COLOR);
     vector<string> file_list = { "./images/airplane1.jpg", "./images/house.jpg",
         "./images/baboon.jpg", "./images/flower2.jpg",

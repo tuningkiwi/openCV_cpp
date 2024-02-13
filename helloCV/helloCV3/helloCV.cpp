@@ -90,6 +90,17 @@ int affine_shear() {
     int menu = 0; 
     cout << "가로로 민다면 0, 세로로 민다면 1"; 
     cin >> menu; 
+    cout << "INTERPOLATION 선택하기" << endl;
+    int interpolFlag[10] = { INTER_NEAREST, INTER_LINEAR, INTER_CUBIC, 
+        INTER_AREA, INTER_LANCZOS4, INTER_LINEAR_EXACT, INTER_NEAREST_EXACT, 
+        INTER_MAX, WARP_FILL_OUTLIERS, WARP_INVERSE_MAP };
+    
+    for (int i = 0; i < 10; i++) {
+        cout << i << ":" <<interpolFlag[i]<< endl;
+    }
+    int myFlag = 1; 
+    cin >> myFlag; 
+
     Mat dst;
     if (menu == 0) {
         cout << "가로로 얼만큼 밀겠습니까 (mx= 0.3)?";
@@ -97,7 +108,9 @@ int affine_shear() {
         cin >> mx;
         Mat M = Mat_<double>({ 2,3 }, { 1,mx,0,0,1,0 });
         // x' = x+mx*y
-        warpAffine(src, dst, M, Size(cvRound(src.cols + src.rows * mx), src.rows));
+        
+        //BORDER_TRANSPARENT
+        warpAffine(src, dst, M, Size(cvRound(src.cols + src.rows * mx), src.rows), myFlag, 0, Scalar(0,0,255));
     }
     else if (menu == 1) {
         cout << "세로로 얼만큼 밀겠습니까 (my= 0.3)?";
@@ -105,11 +118,13 @@ int affine_shear() {
         cin >> my;
         Mat M = Mat_<double>({ 2,3 }, { 1,0,0,my,1,0 });
         // y' = y+my*x
+
         
         warpAffine(src, dst, M, Size(src.cols, cvRound(src.rows + src.cols * my)));
     }
     else {
-        
+        cout << "메뉴 잘못 고르심"; 
+        return -1; 
     }
 
     imshow("src", src); 

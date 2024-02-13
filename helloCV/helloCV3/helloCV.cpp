@@ -26,6 +26,10 @@ int filter_median(void);
 int blurring_mean(void); 
 int blurring_gaussian(void); 
 int sharpen(void); 
+int affine(void); 
+int affine_translation(void); 
+int affine_shear(void); 
+int affine_scale(void); 
 
 int main()
 {
@@ -48,7 +52,11 @@ int main()
             case 74: sharpen(); break;       
             case 75: noise(); break;
             case 76: filter_bilateral(); break;
-            case 77: filter_median();
+            case 77: filter_median(); break; 
+            case 81: affine(); break;
+            case 82: affine_translation(); break; 
+            case 83: affine_shear(); break; 
+            case 84: affine_scale(); break; 
             case 104: color_equalization(); break;
             case 105: color_inrange(); break;
             case 1052: color_inrange_v2(); break;
@@ -60,6 +68,111 @@ int main()
     
     }
     
+}
+
+int affine_scale() {
+    Mat src = imread("images/rose.bmp");
+    if (src.empty()) {
+        cerr << "src not unload" << endl;
+        return -1;
+    }
+
+
+    return 0; 
+}
+
+int affine_shear() {
+    Mat src = imread("images/tekapo.bmp");
+    if (src.empty()) {
+        cerr << "src not unload" << endl;
+        return -1;
+    }
+    int menu = 0; 
+    cout << "가로로 민다면 0, 세로로 민다면 1"; 
+    cin >> menu; 
+    Mat dst;
+    if (menu == 0) {
+        cout << "가로로 얼만큼 밀겠습니까 (mx= 0.3)?";
+        double mx;
+        cin >> mx;
+        Mat M = Mat_<double>({ 2,3 }, { 1,mx,0,0,1,0 });
+        // x' = x+mx*y
+        warpAffine(src, dst, M, Size(cvRound(src.cols + src.rows * mx), src.rows));
+    }
+    else if (menu == 1) {
+        cout << "세로로 얼만큼 밀겠습니까 (my= 0.3)?";
+        double my;
+        cin >> my;
+        Mat M = Mat_<double>({ 2,3 }, { 1,0,0,my,1,0 });
+        // y' = y+my*x
+        
+        warpAffine(src, dst, M, Size(src.cols, cvRound(src.rows + src.cols * my)));
+    }
+    else {
+        
+    }
+
+    imshow("src", src); 
+    imshow("dst", dst);
+    waitKey();
+    destroyAllWindows(); 
+}
+
+int affine_translation() {
+    Mat src = imread("images/tekapo.bmp");
+    if (src.empty()) {
+        cerr << "src not unload" << endl;
+        return -1;
+    }
+    cout << "src size: " << src.size() << endl;
+    double a = 0, b = 0;
+    cout << "가로와 세로로 몇 픽셀 이동(a b): ";
+    cin >> a >> b;
+    
+    Mat M = Mat_<double>({ 2,3 }, { 1,0,a,0,1,b }); 
+
+    Mat dst;
+    warpAffine(src, dst, M, Size()); 
+
+    imshow("src", src); 
+    imshow("dst", dst);
+    waitKey(); 
+    destroyAllWindows(); 
+    return 0; 
+}
+
+int affine(void) {
+    Mat src = imread("images/tekapo.bmp");
+    if (src.empty()) {
+        cerr << "src not unload" << endl;
+        return -1; 
+    }
+    cout << "src size: "<< src.size() << endl;
+
+    Point2f srcPts[3], dstPts[3]; 
+    srcPts[0] = Point2f(0, 0);
+    srcPts[1] = Point2f(src.cols-1, 0);
+    srcPts[2] = Point2f(src.cols-1, src.rows-1);
+
+    dstPts[0] = Point2f(50, 50); 
+    dstPts[1] = Point2f(src.cols - 100, 100); 
+    dstPts[2] = Point2f(src.cols - 50, src.rows - 50);
+
+    Mat M = getAffineTransform(srcPts, dstPts); 
+    vector<Point2f> src_loc = { Point2f(100,20), Point2f(200,50) }; 
+    vector<Point2f> dst_loc; 
+    transform(src_loc, dst_loc, M);
+    cout << "affine matrix"<< M;
+
+
+    Mat dst;
+    warpAffine(src, dst, M, Size()); 
+
+    imshow("src", src); 
+    imshow("dst", dst); 
+    waitKey(); 
+    destroyAllWindows();
+
 }
 
 int filter_median(void) {

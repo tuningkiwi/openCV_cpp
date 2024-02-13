@@ -7,4 +7,10 @@ codeID	Page	explain
 72	253	blurring_mean
 73	259	blurring_gaussian
 74	263	sharpen (unsharp mask filtering) 
+75	267	gaussian add noise
+76	270	bilateralFilter(gaussian)
+77	273	median filter(gaussian)
+81	280	affine
+82	283	affine_translation
+83	286	affine_shear
 0	0	Program EXIT

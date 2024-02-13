@@ -1,15 +1,13 @@
 ﻿// helloCV.cpp : 이 파일에는 'main' 함수가 포함됩니다. 거기서 프로그램 실행이 시작되고 종료됩니다.
 //
 
+#include "opencv2/opencv.hpp"
 #include <iostream>
-#include <opencv2/opencv.hpp>
-#define _USE_MATH_DEFINES // for C++
-#include <math.h>
-#include <stdio.h>
-#define FILENAME  "test.txt"
 
-using namespace std;
 using namespace cv;
+using namespace std;
+
+#define FILENAME  "test.txt"
 
 int fun104(void);
 int fun105(void);
@@ -23,6 +21,9 @@ int fun510(void);
 Mat getGrayHistImage(const Mat& hist);
 Mat calcGrayHist(const Mat& img);
 int fun072(void); 
+int noise(void);
+int filter_bilateral(void);
+int filter_median(void);
 
 int main()
 {
@@ -45,12 +46,92 @@ int main()
             case 71: fun071(); break;
             case 72: fun072(); break; 
             case 510: fun510(); break; 
+            case 75: noise(); break;
+            case 76: filter_bilateral(); break;
+            case 77: filter_median(); break;
             case 0: cout << "Program is closed ..." << endl; return 0;
             default: cout << "Wrong Code ID, Retry!!!!!!!!" << endl; break;
         }
     
     }
     
+}
+
+int filter_median(void) {
+    Mat src = imread("images/lena.jpg", IMREAD_GRAYSCALE);
+    imshow("src", src);
+    if (src.empty()) {
+        cerr << "image load failed" << endl;
+        return -1;
+    }
+
+    int num = (int)(src.total() * 0.1);//전체 픽셀의 10%에 대해서 노이즈 추가 
+    for (int i = 0; i < num; i++) {
+        int x = rand() % src.cols;//랜덤 위치 선정 
+        int y = rand() % src.rows; 
+        src.at<uchar>(y, x) = (i % 2) * 255; //i가 홀수면 255, i가 짝수면 0
+    }
+
+    Mat dst1;
+    GaussianBlur(src, dst1, Size(), 1);
+
+    Mat dst2; 
+    medianBlur(src, dst2, 3); 
+    imshow("dst1", dst1);
+    imshow("dst2", dst2);
+    waitKey();
+    destroyAllWindows();
+}
+
+int filter_bilateral(void) {
+    Mat src = imread("images/lena.jpg", IMREAD_GRAYSCALE);
+    imshow("src", src);
+    if (src.empty()) {
+        cerr << "image load failed" << endl;
+        return -1;
+    }
+
+    Mat noise(src.size(), CV_32SC1); 
+    randn(noise, 0, 5); //return array, mean, stddev(표준편차)
+    add(src, noise, src, Mat(), CV_8U); 
+    imshow("noise", src);
+
+    Mat dst1; 
+    GaussianBlur(src, dst1, Size(), 5); // Size()는 원래 kernel size인데 , 표준편차에 의해서 자동생성가능, 5:stddev 
+    imshow("gaussian blur", dst1); 
+
+    Mat dst2;
+    bilateralFilter(src, dst2, -1, 10, 5); // -1 sigmaSpace로부터 자동생성됨. 10: 색공간에서의 가우시안 표준 편차 5: 좌표 공간에서의 가우시안 표준편차 
+    imshow("bilateralFilter", dst2); 
+
+    waitKey(); 
+    destroyAllWindows(); 
+}
+
+int noise(void) {
+    Mat src = imread("images/lena.jpg", IMREAD_GRAYSCALE); 
+
+    if (src.empty()) {
+        cerr << "image load failed" << endl;
+        return -1;
+    }
+
+    imshow("src", src);
+
+    for (int stddev = 10; stddev <= 30; stddev += 10) {
+        Mat noise(src.size(), CV_32SC1);
+        randn(noise, 0, stddev);
+
+        Mat dst;
+        add(src, noise, dst, Mat(), CV_8U);
+
+        String  desc = format("stddev=%d", stddev);
+        imshow(desc, dst);
+
+    }
+    waitKey(); 
+    destroyAllWindows();
+
 }
 
 int fun072(void) {
@@ -247,7 +328,11 @@ int fun105(void) {
     //in Range()함수를 이용한 특정 색상 분할 
     // Hue: 색상 Saturation:채도 Value: 명도 
     
-    src = imread("images/color_w.png",IMREAD_COLOR);
+    //src = imread("../images/color_w.png",IMREAD_COLOR);
+    //src = imread("images/pepper.bmp", IMREAD_COLOR);
+    src = imread("images/candies.png", IMREAD_COLOR);
+
+
     bg = src.clone(); //Mat bg(src.size(), src.type());
     bg.setTo(Scalar(255, 255, 255));
 
@@ -298,7 +383,9 @@ void nothing(int, void*) {
 }
 
 int fun105_v2(void) {
-    Mat src = imread("images/color_w.png", IMREAD_COLOR);
+    //Mat src = imread("images/color_w.png", IMREAD_COLOR);
+    Mat src = imread("images/pepper.bmp", IMREAD_COLOR);
+    src = imread("images/candies.png", IMREAD_COLOR);
     
     Mat bg = src.clone(); //Mat bg(src.size(), src.type());
     bg.setTo(Scalar(255, 255, 255));

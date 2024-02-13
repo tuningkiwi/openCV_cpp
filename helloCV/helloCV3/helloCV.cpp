@@ -1,15 +1,13 @@
 ﻿// helloCV.cpp : 이 파일에는 'main' 함수가 포함됩니다. 거기서 프로그램 실행이 시작되고 종료됩니다.
 //
 
+#include "opencv2/opencv.hpp"
 #include <iostream>
-#include <opencv2/opencv.hpp>
-#define _USE_MATH_DEFINES // for C++
-#include <math.h>
-#include <stdio.h>
-#define FILENAME  "test.txt"
 
-using namespace std;
+#define FILENAME "test.txt"
+
 using namespace cv;
+using namespace std;
 
 int color_equalization(void);
 int color_inrange(void);
@@ -22,6 +20,9 @@ int filter_embossing(void);
 int histogram_equalization(void);
 Mat getGrayHistImage(const Mat& hist);
 Mat calcGrayHist(const Mat& img);
+int noise(void);
+int filter_bilateral(void);
+int filter_median(void);
 int blurring_mean(void); 
 int blurring_gaussian(void); 
 int sharpen(void); 
@@ -40,15 +41,18 @@ int main()
         cin >> codeNum;
 
         switch (codeNum) {
+            case 510: histogram_equalization(); break;
+            case 71: filter_embossing(); break;
+            case 72: blurring_mean(); break;
+            case 73: blurring_gaussian(); break;
+            case 74: sharpen(); break;       
+            case 75: noise(); break;
+            case 76: filter_bilateral(); break;
+            case 77: filter_median();
             case 104: color_equalization(); break;
             case 105: color_inrange(); break;
             case 1052: color_inrange_v2(); break;
             case 106: color_backprojection(); break;
-            case 71: filter_embossing(); break;
-            case 72: blurring_mean(); break;
-            case 73: blurring_gaussian(); break;
-            case 74: sharpen(); break; 
-            case 510: histogram_equalization(); break;
             
             case 0: cout << "Program is closed ..." << endl; return 0;
             default: cout << "Wrong Code ID, Retry!!!!!!!!" << endl; break;
@@ -58,33 +62,59 @@ int main()
     
 }
 
-int sharpen(void) {
-    Mat src = imread("images/rose.bmp", IMREAD_GRAYSCALE);
-
+int filter_median(void) {
+    Mat src = imread("images/lena.jpg", IMREAD_GRAYSCALE);
+    imshow("src", src);
     if (src.empty()) {
         cerr << "image load failed" << endl;
         return -1;
     }
 
-    imshow("src", src);
-
-    for (int sigma = 1; sigma <= 5; sigma++) {
-        Mat blurred; 
-        GaussianBlur(src, blurred, Size(), (double)sigma);
-
-        float alpha = 1.f; 
-        Mat dst = (1 + alpha) * src - alpha * blurred;
-
-        String dstTitle = format("sigma=%d", sigma);
-        imshow(dstTitle, dst);
+    int num = (int)(src.total() * 0.1);//전체 픽셀의 10%에 대해서 노이즈 추가 
+    for (int i = 0; i < num; i++) {
+        int x = rand() % src.cols;//랜덤 위치 선정 
+        int y = rand() % src.rows; 
+        src.at<uchar>(y, x) = (i % 2) * 255; //i가 홀수면 255, i가 짝수면 0
     }
 
+    Mat dst1;
+    GaussianBlur(src, dst1, Size(), 1);
+
+    Mat dst2; 
+    medianBlur(src, dst2, 3); 
+    imshow("dst1", dst1);
+    imshow("dst2", dst2);
     waitKey();
     destroyAllWindows();
 }
 
-int blurring_gaussian(void) {
-    Mat src = imread("images/rose.bmp", IMREAD_GRAYSCALE); 
+int filter_bilateral(void) {
+    Mat src = imread("images/lena.jpg", IMREAD_GRAYSCALE);
+    imshow("src", src);
+    if (src.empty()) {
+        cerr << "image load failed" << endl;
+        return -1;
+    }
+
+    Mat noise(src.size(), CV_32SC1); 
+    randn(noise, 0, 5); //return array, mean, stddev(표준편차)
+    add(src, noise, src, Mat(), CV_8U); 
+    imshow("noise", src);
+
+    Mat dst1; 
+    GaussianBlur(src, dst1, Size(), 5); // Size()는 원래 kernel size인데 , 표준편차에 의해서 자동생성가능, 5:stddev 
+    imshow("gaussian blur", dst1); 
+
+    Mat dst2;
+    bilateralFilter(src, dst2, -1, 10, 5); // -1 sigmaSpace로부터 자동생성됨. 10: 색공간에서의 가우시안 표준 편차 5: 좌표 공간에서의 가우시안 표준편차 
+    imshow("bilateralFilter", dst2); 
+
+    waitKey(); 
+    destroyAllWindows(); 
+}
+
+int noise(void) {
+    Mat src = imread("images/lena.jpg", IMREAD_GRAYSCALE); 
 
     if (src.empty()) {
         cerr << "image load failed" << endl;
@@ -93,19 +123,23 @@ int blurring_gaussian(void) {
 
     imshow("src", src);
 
-    Mat dst; 
-    for (int sigma = 1; sigma <= 5; sigma++) {
-        GaussianBlur(src, dst, Size(), (double)sigma); 
+    for (int stddev = 10; stddev <= 30; stddev += 10) {
+        Mat noise(src.size(), CV_32SC1);
+        randn(noise, 0, stddev);
 
-        cout << "Gaussian Kernel\n" << getGaussianKernel(9, sigma) << endl; 
-        String dstTitle = format("sigma=%d", sigma);
-        imshow(dstTitle, dst);
+        Mat dst;
+        add(src, noise, dst, Mat(), CV_8U);
+
+        String  desc = format("stddev=%d", stddev);
+        imshow(desc, dst);
+
     }
-
-    waitKey();
-    destroyAllWindows(); 
+    waitKey(); 
+    destroyAllWindows();
 
 }
+
+
 
 int blurring_mean(void) {
     Mat src = imread("images/rose.bmp", IMREAD_GRAYSCALE);
@@ -126,6 +160,56 @@ int blurring_mean(void) {
     }
     waitKey();
     destroyAllWindows(); 
+}
+
+
+int sharpen(void) {
+    Mat src = imread("images/rose.bmp", IMREAD_GRAYSCALE);
+
+    if (src.empty()) {
+        cerr << "image load failed" << endl;
+        return -1;
+    }
+
+    imshow("src", src);
+
+    for (int sigma = 1; sigma <= 5; sigma++) {
+        Mat blurred;
+        GaussianBlur(src, blurred, Size(), (double)sigma);
+
+        float alpha = 1.f;
+        Mat dst = (1 + alpha) * src - alpha * blurred;
+
+        String dstTitle = format("sigma=%d", sigma);
+        imshow(dstTitle, dst);
+    }
+
+    waitKey();
+    destroyAllWindows();
+}
+
+int blurring_gaussian(void) {
+    Mat src = imread("images/rose.bmp", IMREAD_GRAYSCALE);
+
+    if (src.empty()) {
+        cerr << "image load failed" << endl;
+        return -1;
+    }
+
+    imshow("src", src);
+
+    Mat dst;
+    for (int sigma = 1; sigma <= 5; sigma++) {
+        GaussianBlur(src, dst, Size(), (double)sigma);
+
+        cout << "Gaussian Kernel\n" << getGaussianKernel(9, sigma) << endl;
+        String dstTitle = format("sigma=%d", sigma);
+        imshow(dstTitle, dst);
+    }
+
+    waitKey();
+    destroyAllWindows();
+
 }
 
 int histogram_equalization(void) {
@@ -443,7 +527,7 @@ int color_equalization(void) {
 int printCodeList(void) {
 
     cout << "==========Print Code List=========" << endl;
-
+    
     FILE* stream;
     //함수: 코드 번호 
     if (fopen_s(&stream, FILENAME, "r+") != 0) {//성공시 0 

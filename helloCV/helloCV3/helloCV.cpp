@@ -30,6 +30,9 @@ int affine(void);
 int affine_translation(void); 
 int affine_shear(void); 
 int affine_scale(void); 
+int affine_rotation(void);
+int flip(void);
+void on_mouse(int event, int x, int y, int flags, void*);
 
 int main()
 {
@@ -57,6 +60,8 @@ int main()
             case 82: affine_translation(); break; 
             case 83: affine_shear(); break; 
             case 84: affine_scale(); break; 
+            case 85: affine_rotation(); break; 
+            case 86: flip(); break; 
             case 104: color_equalization(); break;
             case 105: color_inrange(); break;
             case 1052: color_inrange_v2(); break;
@@ -70,6 +75,121 @@ int main()
     
 }
 
+int flip(void) {//reflection 좌우반전 >0 , 상하반전 = 0 , 좌우상하반전 < 0
+
+    Mat src = imread("images/rose.bmp");
+    if (src.empty()) {
+        cerr << "src not unload" << endl;
+        return -1;
+    }
+    Mat lr_dst, ud_dst, lrud_dst;
+    flip(src, lr_dst, 1);
+    flip(src, ud_dst, 0);
+    flip(src, lrud_dst, -1);
+
+    imshow("src",src);
+    imshow("lr_dst", lr_dst);
+    imshow("ud_dst", ud_dst);
+    imshow("lrud_dst", lrud_dst);
+
+    waitKey(); 
+    destroyAllWindows();
+    return 0; 
+}
+
+int affine_rotation() {
+    Mat src = imread("images/rose.bmp");
+    if (src.empty()) {
+        cerr << "src not unload" << endl;
+        return -1;
+    }
+
+    ///추가: 회전해도 전체 사진이 보이게
+    int w = src.cols;
+    int h = src.rows;
+
+    cout << "몇도를 회전하실 것인지? ex) 반시계 +20, 시계-20";
+    int angle = 0;
+    cin >> angle;
+
+    double rad = (angle * CV_PI) / 180;
+    double cos_value = cos(rad);
+    double sin_value = sin(rad);
+
+    //회전 후 생성되는 영상의 크기를 계산
+    // 4개의 코너 포인트의 이동 좌표를 계산하여 최대 최소점의 차이를 구한다. 
+    // (0,0) (w,0) (0,h) (w,h) 
+
+    int nx, ny, minx, miny, maxx, maxy, nw, nh;
+
+    // (0,0) 
+    minx = maxx = 0;
+    miny = maxy = 0;
+
+    //(w,0) 
+    nx = static_cast<int>(floor((w - 1) * cos_value + 0.5));
+    ny = static_cast<int>(-floor((w - 1) * sin_value + 0.5));
+    minx = (minx < nx) ? minx : nx;
+    maxx = (maxx > nx) ? maxx : nx;
+    miny = (miny < ny) ? miny : ny;
+    maxy = (maxy > ny) ? maxy : ny;
+
+    //(0,h) 
+    nx = static_cast<int>(floor((h - 1) * sin_value + 0.5));
+    ny = static_cast<int>(floor((h - 1) * cos_value + 0.5));
+    minx = (minx < nx) ? minx : nx;
+    maxx = (maxx > nx) ? maxx : nx;
+    miny = (miny < ny) ? miny : ny;
+    maxy = (maxy > ny) ? maxy : ny;
+
+    //(w,h) 
+    nx = static_cast<int>(floor((w - 1) * cos_value + (h - 1) * sin_value));
+    ny = static_cast<int>(floor(-(w - 1) * sin_value + (h - 1) * cos_value));
+    minx = (minx < nx) ? minx : nx;
+    maxx = (maxx > nx) ? maxx : nx;
+    miny = (miny < ny) ? miny : ny;
+    maxy = (maxy > ny) ? maxy : ny;
+
+    nw = maxx - minx + 1;
+    nh = maxy - miny + 1;
+    Size newSZ(nw, nh);
+    cout << "origin size (" << w << ":" << h << endl;
+    cout << "new size (" << newSZ.width << ":" << newSZ.height << endl;
+    string info = format("info>> minx: %d maxx: %d miny:%d maxy: %d",minx,maxx, miny, maxy);
+    cout << info << endl;
+
+    //Point2f cp(src.cols / 2.f, src.rows / 2.f);
+    Point2f cp(0.f, 0.f);
+    Mat M = getRotationMatrix2D(cp, angle, 1);
+    cout << "m은 :\n" << M << endl;
+    /*   origin size(480:320
+       new size(560:465
+           info >> minx : 0 maxx : 559 miny : -164 maxy : 300
+           m은 :
+           [0.9396926207859084, 0.3420201433256687, 0;
+   -0.3420201433256687, 0.9396926207859084, 0]*/
+    if (angle > 0) {
+        double y_tr = -miny + 1.f;
+        M.at<double>(1, 2) += y_tr;
+        //Mat y_ = Mat_<double>( {2,3},{0,0,0,0,0,y_tr} );
+        //M = M + y_; 
+    }
+    else { // 시계방향 
+        double x_tr = -minx + 1.f;
+        M.at<double>(0, 2) += x_tr;
+    }
+    cout << "이동후 m은 :\n" << M << endl;
+
+    Mat dst;
+    warpAffine(src, dst, M, newSZ);
+    imshow("src", src);
+    imshow("dst", dst);
+
+    
+    waitKey(); 
+    destroyAllWindows(); 
+}
+
 int affine_scale() {
     Mat src = imread("images/rose.bmp");
     if (src.empty()) {
@@ -77,6 +197,36 @@ int affine_scale() {
         return -1;
     }
 
+    cout << "INTERPOLATION 선택하기" << endl;
+    string interpolFlag[10] = { "INTER_NEAREST", "INTER_LINEAR", "INTER_CUBIC",
+        "INTER_AREA", "INTER_LANCZOS4", "INTER_LINEAR_EXACT", "INTER_NEAREST_EXACT",
+        "INTER_MAX", "WARP_FILL_OUTLIERS", "WARP_INVERSE_MAP" };
+
+    for (int i = 0; i < 10; i++) {
+        cout << i << ":" << interpolFlag[i] << endl;
+    }
+    int myinterpol = 1;
+    cin >> myinterpol;
+
+    Mat dst1, dst2, dst3, dst4,dst5,dst6; 
+    resize(src, dst1, Size(), 4, 4, INTER_NEAREST); 
+    resize(src, dst2, Size(1920, 1280)); //기본이 Bilinear interpolation 
+    resize(src, dst3, Size(1920, 1280), 0, 0, INTER_NEAREST);
+    resize(src, dst4, Size(1920, 1280), 0, 0, INTER_LINEAR);
+    resize(src, dst5, Size(1920, 1280), 0, 0, INTER_CUBIC);
+    resize(src, dst6, Size(1920, 1280), 0, 0, INTER_LANCZOS4);
+
+    imshow("src", src); 
+    imshow("dst1", dst1(Rect(400, 500, 400, 400))); 
+    imshow("dst2", dst2(Rect(400, 500, 400, 400)));
+    imshow("INTER_NEAREST", dst3(Rect(400, 500, 400, 400)));
+    imshow("INTER_LINEAR", dst4(Rect(400, 500, 400, 400)));
+    imshow("INTER_CUBIC", dst5(Rect(400, 500, 400, 400)));
+    imshow("INTER_LANCZOS4", dst6(Rect(400, 500, 400, 400)));
+
+
+    waitKey(); 
+    destroyAllWindows();
 
     return 0; 
 }
@@ -90,16 +240,6 @@ int affine_shear() {
     int menu = 0; 
     cout << "가로로 민다면 0, 세로로 민다면 1"; 
     cin >> menu; 
-    cout << "INTERPOLATION 선택하기" << endl;
-    int interpolFlag[10] = { INTER_NEAREST, INTER_LINEAR, INTER_CUBIC, 
-        INTER_AREA, INTER_LANCZOS4, INTER_LINEAR_EXACT, INTER_NEAREST_EXACT, 
-        INTER_MAX, WARP_FILL_OUTLIERS, WARP_INVERSE_MAP };
-    
-    for (int i = 0; i < 10; i++) {
-        cout << i << ":" <<interpolFlag[i]<< endl;
-    }
-    int myFlag = 1; 
-    cin >> myFlag; 
 
     Mat dst;
     if (menu == 0) {
@@ -110,7 +250,7 @@ int affine_shear() {
         // x' = x+mx*y
         
         //BORDER_TRANSPARENT
-        warpAffine(src, dst, M, Size(cvRound(src.cols + src.rows * mx), src.rows), myFlag, 0, Scalar(0,0,255));
+        warpAffine(src, dst, M, Size(cvRound(src.cols + src.rows * mx), src.rows));
     }
     else if (menu == 1) {
         cout << "세로로 얼만큼 밀겠습니까 (my= 0.3)?";
@@ -415,11 +555,40 @@ int filter_embossing(void) {
     return 0; 
 }
 
+Mat src2;
+Point ptOld;
+vector<Point> markers;
+vector<vector<Point>> markersGrp;
+void on_mouse(int event, int x, int y, int flags, void*)
+{
+    switch (event) {
+    case EVENT_LBUTTONDOWN:
+        ptOld = Point(x, y);
+        markers.push_back(ptOld);
+        drawMarker(src2, ptOld, Scalar(0, 0, 0), MARKER_CROSS, 10);
+        imshow("COLOR_PICKER", src2);
+        cout << "point: " << x << ", " << y << endl;
+        break;
+    case EVENT_RBUTTONDOWN:
+        markersGrp.push_back(markers);
+        markers.clear();
+        break;
+    default:
+        break;
+    }
+}
+
+
 int color_backprojection(void) {
 
     Mat ref, ref_ycrcb, mask;
     ref = imread("images/ref.png", IMREAD_COLOR);
     mask = imread("images/mask.bmp", IMREAD_GRAYSCALE);
+    imshow("ref", ref);
+    imshow("mask", mask); 
+    waitKey();
+    destroyAllWindows(); 
+
     cvtColor(ref, ref_ycrcb, COLOR_BGR2YCrCb);
 
     //ref 사진에서 피부색 영역의 CrCb 2차원 히스토그램을 계산하여 hist에 저장. 
@@ -435,6 +604,7 @@ int color_backprojection(void) {
     // 그 정보를 backProject 영상으로 반환하기 
 
     calcHist(&ref_ycrcb, 1, channels, mask, hist, 2, histSize, ranges);
+    cout << "hist size>>>" << hist.size() << endl;
     //calchist($ref_ycrcb: 입력영상 주소, 1: 입력영상 갯수, 
     // channels: 히스토그램을 구할 채널을 나타내는 정수형 배열 , mask: 마스크 영상 (입력 영상과 크기가 같은 8비트 배열)
     //hist:  출력 히스토그램 , 2(dims):  출력 히스토그램의 차원 수 
@@ -442,23 +612,26 @@ int color_backprojection(void) {
     //ranges: 각 차원의 히스토그램 범위 
 
     //histogram CrCb 확인하기 
+
+    int scale = 5; //히스토그램 크기 확대 
+    //Mat histImg = Mat::zeros(cr_bins * scale, cb_bins * scale, CV_8UC3);
+    Mat histImg2 = Mat::zeros(cr_bins * scale, cb_bins * scale, CV_8UC1);
+    //for (int cr = 0; cr < cr_bins; cr++) {
+    //    for (int cb = 0; cb < cb_bins; cb++)
+    //    {
+    //        float binVal = hist.at<float>(cr, cb);
+    //        //밀도의 범위 (0~255)  
+    //        int intensity = cvRound(binVal * 255 / maxVal);
+    //        rectangle(histImg, Point(cb * scale, cr * scale),
+    //            Point((cb + 1) * scale - 1, (cr + 1) * scale - 1),
+    //            Scalar::all(intensity),-1);
+    //    }
+    //}
+
     double maxVal = 0;
     minMaxLoc(hist, 0, &maxVal, 0, 0);
     cout << "=========" << maxVal << endl;
-    int scale = 5;
-    Mat histImg = Mat::zeros(cr_bins * scale, cb_bins * scale, CV_8UC3);
-    Mat histImg2 = Mat::zeros(cr_bins * scale, cb_bins * scale, CV_8UC3);
-    for (int cr = 0; cr < cr_bins; cr++) {
-        for (int cb = 0; cb < cb_bins; cb++)
-        {
-            float binVal = hist.at<float>(cr, cb);
-            //밀도의 범위 (0~255)  
-            int intensity = cvRound(binVal * 255 / maxVal);
-            rectangle(histImg, Point(cb * scale, cr * scale),
-                Point((cb + 1) * scale - 1, (cr + 1) * scale - 1),
-                Scalar::all(intensity),-1);
-        }
-    }
+
     for (int cr = 0; cr < cr_bins; cr++) {
         for (int cb = 0; cb < cb_bins; cb++)
         {
@@ -466,69 +639,113 @@ int color_backprojection(void) {
             //밀도의 범위 (0~255)  
             int intensity = cvRound(binVal * 255 / maxVal);
             rectangle(histImg2, Point(cb * scale, cr * scale),
-                Point((cb * scale)+scale-1, (cr * scale)+scale-1),
-                Scalar::all(intensity), -1);
+                Point((cb * scale) + scale - 1, (cr * scale) + scale - 1),
+                Scalar(intensity), -1);//Scalar::all(intensity)
         }
     }
-    Mat dst;
-    subtract(histImg, histImg2, dst);
-    imshow("CrCb Histogram", histImg);
+    //Mat dst;
+    /*subtract(histImg, histImg2, dst);
+    imshow("CrCb Histogram", histImg);*/
     imshow("CrCb Histogram22", histImg2);
-    imshow("subtract", dst);
+    //imshow("subtract", dst);
 
     waitKey();
     destroyAllWindows();
 
-    Mat src, src_ycrcb, src2, src2_ycrcb;
+    Mat src, src_ycrcb, src2_ycrcb;
     src = imread("images/kids.png", IMREAD_COLOR);
-    src2 = imread("images/kids2.jpg");
+    src2 = imread("images/kids3.jpg");
     cvtColor(src, src_ycrcb, COLOR_BGR2YCrCb); 
     cvtColor(src2, src2_ycrcb, COLOR_BGR2YCrCb);
 
-
     Mat backproj, backproj2;
+    //&src_ycrcb : 입력영상, 입력영상개수, 채널번호배열, 입력히스토그램, 출력 역투영 영상, 
+    // ranges: 각차원의 히스토그램 범위, 역투영 값에 추가적으로 곱할 값, 빈의 간격이 균등(uniform)하면 true 
     calcBackProject(&src_ycrcb, 1, channels, hist, backproj, ranges, 1, true);
     calcBackProject(&src2_ycrcb, 1, channels, hist, backproj2, ranges, 1, true);
 
     // 1: 히스토그램 역투영 값에 추가적으로 곱할 값 
     // true: 히스토그램 빈의 간격이 균등하다 
     
-    imshow("mask", mask);
-    imshow("src", src);
-    imshow("backproj", backproj);
+    imshow("src1", src);
+    imshow("src2", src2);
+
+    imshow("backproj1", backproj);
     imshow("backproj2", backproj2);
 
+    waitKey();
+    destroyAllWindows();
 
-    if (waitKey() == 27) {
-        destroyAllWindows();
-        return 0;
+    //마스크 파일 만들기 
+    namedWindow("COLOR_PICKER");
+    setMouseCallback("COLOR_PICKER", on_mouse);
+
+    src2 = imread("images/kids2.jpg");
+    imshow("COLOR_PICKER", src2);
+    waitKey();
+
+    Mat src2_mask = Mat::zeros(src2.size(), CV_8UC1);
+    for (int i = 0; i < markersGrp.size(); i++) {
+        fillPoly(src2_mask, markersGrp[i], Scalar(255));
     }
+
+    imshow("mask", src2_mask);
+    waitKey(); 
+    destroyAllWindows();
+
+    cvtColor(src2, src2_ycrcb, COLOR_BGR2YCrCb);
+    calcHist(&src2_ycrcb, 1, channels, src2_mask, hist, 2, histSize, ranges);
+    //calcBackProject(&src2_ycrcb, 1, channels, hist, backproj2, ranges, 1, true);
+
+    Mat src3 = imread("images/kids3.jpg");
+    Mat src3_ycrcb, backproj3;
+    cvtColor(src3, src3_ycrcb, COLOR_BGR2YCrCb);
+    calcBackProject(&src3_ycrcb, 1, channels, hist, backproj3, ranges, 1, true);
+
+    imshow("src3", src3);
+    imshow("backproj3", backproj3);
+    waitKey();
+    destroyAllWindows();
+
+    markers.clear();//초기화
+    markersGrp.clear();
+
+    return 0;
     
 }
 
 
+
 Mat src, src_hsv, mask, bg;
-int lower_hue = 40, upper_hue = 80;
+int lower_hue = 0, upper_hue = 0;
 int color_inrange(void) {
     //in Range()함수를 이용한 특정 색상 분할 
-    // Hue: 색상 Saturation:채도 Value: 명도 
+    // Hue: 색상 Saturation:채도(0~255) Value: 명도(0~255) 
+    // Hue: 0~179 (실제  0~360 이지만 256 UCHAR 로 표현하기 위해 /2를 함 ) 
+    vector<string> file_list= {"images/candies.png","images/color_w.png"};
     
-    src = imread("images/color_w.png",IMREAD_COLOR);
-    bg = src.clone(); //Mat bg(src.size(), src.type());
-    bg.setTo(Scalar(255, 255, 255));
+    for (int i = 0; i < file_list.size(); i++) {
+        src = imread(file_list[i], IMREAD_COLOR);
 
-    cvtColor(src, src_hsv, COLOR_BGR2HSV);
-    imshow("src", src);
+        cvtColor(src, src_hsv, COLOR_BGR2HSV);
+        imshow("src", src);
 
-    namedWindow("mask");
-    createTrackbar("Lower Hue", "mask", &lower_hue, 179, on_hue_changed);
-    createTrackbar("Upper Hue", "mask", &upper_hue, 179, on_hue_changed);
-    on_hue_changed(0, 0); //프로그램이 처음 실행될때, 영상이 정상 출력되도록 트랙바 콜백 함수를 강제로 호출 
-
-    if(waitKey() == 27) {
+        namedWindow("mask", WINDOW_NORMAL);
+        createTrackbar("Lower Hue", "mask", &lower_hue, 179, on_hue_changed);
+        createTrackbar("Upper Hue", "mask", &upper_hue, 179, on_hue_changed);
+        on_hue_changed(0, 0);
+       
+        int keyNum = waitKey();
         destroyAllWindows();
-        return 0;
+
+        if (keyNum == 27) {
+            break;
+        }
     }
+
+    destroyAllWindows();
+    return 0;
+    
 
 }
 
@@ -538,25 +755,12 @@ void on_hue_changed(int, void*) {
     Scalar lowerb(lower_hue, 0, 0); //(h,s,v)
     Scalar upperb(upper_hue, 255, 255);
 
-    //이거 없이 하려면, 원하는 출력이 안나옴 
-    //아래와 같이 항상 깨끗이 mask를 정리해야함. 
-    //mask = Mat::zeros(src.size(), CV_8UC1);
+    //mask = Mat::zeros(src.size(), CV_8UC1);    
     inRange(src_hsv, lowerb, upperb, mask);
-    imshow("mask", mask);
-    //Mat mask_inv = Mat::zeros(src.size(), CV_8UC1);
-    //bitwise_not(mask, mask_inv);
-
-    //Mat img1 = Mat::zeros(src.size(), CV_8UC3);
-    //bitwise_and(src, src, img1, mask);
-
-    //Mat img2 = Mat::zeros(src.size(), CV_8UC3);
-    //bitwise_and(bg, bg, img2, mask_inv); // mask = mask_inv
-
-    //Mat final = Mat::zeros(src.size(), CV_8UC3);
-    //add(img1, img2, final);
-    //imshow("mask", final);
-
-    
+    Mat bg = Mat::ones(src.size(), src.type());
+    src.copyTo(bg, mask);
+    imshow("mask", bg);
+   
 }
 
 void nothing(int, void*) {
@@ -577,7 +781,7 @@ int color_inrange_v2(void) {
     split(src_hsv, channels);
     
     namedWindow("mask");
-    int lower_hue=10, upper_hue=80;
+    int lower_hue=0, upper_hue=0;
     createTrackbar("Lower Hue", "mask", &lower_hue, 179, nothing);
     createTrackbar("Upper Hue", "mask", &upper_hue, 179, nothing);
 
@@ -611,43 +815,52 @@ int color_inrange_v2(void) {
 }
 
 int color_equalization(void) {
-    Mat src = imread("images/lena.jpg", IMREAD_COLOR);
-    vector<string> file_list = { "./images/airplane1.jpg", "./images/house.jpg",
+    
+    vector<string> file_list = { "images/pepper.bmp","images/lena.jpg","./images/airplane1.jpg", "./images/house.jpg",
         "./images/baboon.jpg", "./images/flower2.jpg",
-        "./images/red_sky.jpg", "./images/puppies.jpg" };
+        "./images/red_sky.jpg"};
 
-    if (src.empty()) {
-        cerr << "Image load failed" << endl;
-        return -1;
+    for (int i = 0; i < file_list.size(); i++) {
+        Mat src = imread(file_list[i], IMREAD_COLOR);
+
+        if (src.empty()) {
+            cerr << "Image load failed" << endl;
+            return -1;
+        }
+
+        //FROM BGR TO YCRCB 
+        Mat src_ycrcb;
+        cvtColor(src, src_ycrcb, COLOR_BGR2YCrCb);
+
+        //Split
+        vector<Mat> ycrcb_planes;
+        split(src_ycrcb, ycrcb_planes); // [0]: y, [1]:cr, [2]:cb
+
+        //히스토그램 평활화 
+        equalizeHist(ycrcb_planes[0], ycrcb_planes[0]); // src, dst
+
+        //Merge
+        Mat dst_ycrcb;
+        merge(ycrcb_planes, dst_ycrcb); //list merge! pixel value = [y,cr,cb]
+
+        //FROM YCRCB TO BGR 
+        Mat dst; //bgr 형태로 받을 mat 변수 
+        cvtColor(dst_ycrcb, dst, COLOR_YCrCb2BGR);
+
+        imshow("src", src);
+        imshow("dst", dst);
+
+        cout << "Press ESC key to close this window " << endl;
+        int keyNum = waitKey();
+        if (keyNum == 27) {
+            break;
+        }
+        
     }
 
-    //FROM BGR TO YCRCB 
-    Mat src_ycrcb;
-    cvtColor(src, src_ycrcb, COLOR_BGR2YCrCb);
+    destroyAllWindows();
+    return 0;
     
-    //Split
-    vector<Mat> ycrcb_planes;
-    split(src_ycrcb, ycrcb_planes); // [0]: y, [1]:cr, [2]:cb
-
-    //히스토그램 평활화 
-    equalizeHist(ycrcb_planes[0], ycrcb_planes[0]); // src, dst
-
-    //Merge
-    Mat dst_ycrcb; 
-    merge(ycrcb_planes, dst_ycrcb); //list merge! pixel value = [y,cr,cb]
-    
-    //FROM YCRCB TO BGR 
-    Mat dst; //bgr 형태로 받을 mat 변수 
-    cvtColor(dst_ycrcb, dst, COLOR_YCrCb2BGR);
-
-    imshow("src", src);
-    imshow("dst", dst);
-
-    cout << "Press ESC key to close this window " << endl;
-    if (waitKey() == 27) {
-        destroyAllWindows();
-        return 0;
-    }
 
 }
 

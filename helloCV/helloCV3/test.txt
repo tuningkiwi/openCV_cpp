@@ -13,4 +13,7 @@ codeID	Page	explain
 81	280	affine
 82	283	affine_translation
 83	286	affine_shear
+84	289	affine_scale
+85	293	affine_rotate
+86	296	affine_flip
 0	0	Program EXIT

@@ -580,10 +580,23 @@ void on_mouse(int event, int x, int y, int flags, void*)
 
 
 int color_backprojection(void) {
+    vector<string> filename = { "images/ref.png","images/mask.bmp","images/kids.png"};//,"images/kids2.jpg", "images/kids3.jpg" 
+    cout << "마스크를 뽑아낼 파일 경로를 입력하세요: 예) ""images/kids2.jpg"":" <<endl;
+    string myfile;
+    cin >> myfile;
+    filename.push_back(myfile);
+    cout << "만든 마스크로 테스트할 파일 경로를 입력하세요: 예) ""images/kids2.jpg"":" << endl;
+    cin >> myfile;
+    filename.push_back(myfile);
+    cout << "이 함수에서 사용할 파일리스트 입니다 " << endl;
+    for (int i = 0; i < filename.size(); i++) {
+        cout << filename[i] << endl;
+    }
+
 
     Mat ref, ref_ycrcb, mask;
-    ref = imread("images/ref.png", IMREAD_COLOR);
-    mask = imread("images/mask.bmp", IMREAD_GRAYSCALE);
+    ref = imread(filename[0], IMREAD_COLOR);
+    mask = imread(filename[1], IMREAD_GRAYSCALE);
     imshow("ref", ref);
     imshow("mask", mask); 
     waitKey();
@@ -653,8 +666,8 @@ int color_backprojection(void) {
     destroyAllWindows();
 
     Mat src, src_ycrcb, src2_ycrcb;
-    src = imread("images/kids.png", IMREAD_COLOR);
-    src2 = imread("images/kids3.jpg");
+    src = imread(filename[2], IMREAD_COLOR);
+    src2 = imread(filename[4]);
     cvtColor(src, src_ycrcb, COLOR_BGR2YCrCb); 
     cvtColor(src2, src2_ycrcb, COLOR_BGR2YCrCb);
 
@@ -680,7 +693,7 @@ int color_backprojection(void) {
     namedWindow("COLOR_PICKER");
     setMouseCallback("COLOR_PICKER", on_mouse);
 
-    src2 = imread("images/kids2.jpg");
+    src2 = imread(filename[3]);
     imshow("COLOR_PICKER", src2);
     waitKey();
 
@@ -697,7 +710,7 @@ int color_backprojection(void) {
     calcHist(&src2_ycrcb, 1, channels, src2_mask, hist, 2, histSize, ranges);
     //calcBackProject(&src2_ycrcb, 1, channels, hist, backproj2, ranges, 1, true);
 
-    Mat src3 = imread("images/kids3.jpg");
+    Mat src3 = imread(filename[4]);
     Mat src3_ycrcb, backproj3;
     cvtColor(src3, src3_ycrcb, COLOR_BGR2YCrCb);
     calcBackProject(&src3_ycrcb, 1, channels, hist, backproj3, ranges, 1, true);
@@ -821,12 +834,17 @@ int color_equalization(void) {
         "./images/red_sky.jpg"};
 
     for (int i = 0; i < file_list.size(); i++) {
+
+        TickMeter tm;
+        tm.start();
         Mat src = imread(file_list[i], IMREAD_COLOR);
 
         if (src.empty()) {
             cerr << "Image load failed" << endl;
             return -1;
         }
+
+
 
         //FROM BGR TO YCRCB 
         Mat src_ycrcb;
@@ -847,8 +865,11 @@ int color_equalization(void) {
         Mat dst; //bgr 형태로 받을 mat 변수 
         cvtColor(dst_ycrcb, dst, COLOR_YCrCb2BGR);
 
-        imshow("src", src);
+        
         imshow("dst", dst);
+        tm.stop();
+        cout << "<<time>>>>>>>>>>>>>>>>>> " << tm.getTimeMilli() << "ms" << endl;
+        imshow("src", src);
 
         cout << "Press ESC key to close this window " << endl;
         int keyNum = waitKey();

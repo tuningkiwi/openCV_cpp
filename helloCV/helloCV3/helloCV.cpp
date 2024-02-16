@@ -32,6 +32,7 @@ int affine_shear(void);
 int affine_scale(void); 
 int affine_rotation(void);
 int flip(void);
+int sobel_edge(void); 
 void on_mouse(int event, int x, int y, int flags, void*);
 
 int main()
@@ -62,17 +63,46 @@ int main()
             case 84: affine_scale(); break; 
             case 85: affine_rotation(); break; 
             case 86: flip(); break; 
+            case 91: sobel_edge(); break;
             case 104: color_equalization(); break;
             case 105: color_inrange(); break;
             case 1052: color_inrange_v2(); break;
             case 106: color_backprojection(); break;
-            
+      
             case 0: cout << "Program is closed ..." << endl; return 0;
             default: cout << "Wrong Code ID, Retry!!!!!!!!" << endl; break;
         }
     
     }
     
+}
+
+int sobel_edge() {
+    Mat src = imread("images/rose.bmp");
+    cvtColor(src, src, COLOR_BGR2GRAY);
+    if (src.empty()) {
+        cerr << "src not unload" << endl;
+        return -1;
+    }
+
+    imshow("src", src);
+    waitKey();
+
+    Mat dx, dy; //x축 변화량 미분 행렬, y축 변화량 미분 행렬 
+    Sobel(src, dx, CV_32FC1, 1, 0);
+    Sobel(src, dy, CV_32FC1, 0, 1);
+
+    Mat fmag, mag; 
+    magnitude(dx, dy, fmag); // return fmag : 벡터 크기 (크기가 클수록 변화량이 큼) 
+    fmag.convertTo(mag, CV_8UC1);
+    
+    Mat edge = mag > 150;
+    imshow("src", src);
+    imshow("mag", mag);
+    imshow("edge", edge);
+
+    waitKey();
+    destroyAllWindows(); 
 }
 
 int flip(void) {//reflection 좌우반전 >0 , 상하반전 = 0 , 좌우상하반전 < 0
